@@ -32,13 +32,16 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@master
         env:
           SONAR_TOKEN: ${{ "${{" }} secrets.SONARQUBE_USER_TOKEN }}
-          SONAR_HOST_URL: ${{ "${{" }} secrets.SONARQUBE_URL }}
+          SONAR_HOST_URL: ${{ "${{" }} env.SONARQUBE_URL }}
         with:
           args: >
             -Dsonar.projectKey="${{ values.app_name }}"
   
   build_and_push:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       # ソースコードをチェックアウト
