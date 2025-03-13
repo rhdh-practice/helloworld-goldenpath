@@ -6,17 +6,17 @@ on:
   pull_request:
     branches: [develop]
 
-env:
-  AWS_REGION: ${{ "${{" }} secrets.AWS_REGION }}
-  SONAR_PROJECT_KEY: ${{ values.app_name }}
-  SONARQUBE_URL: ${{ "${{" }} secrets.SONARQUBE_URL }}
-  SONARQUBE_USER_TOKEN: ${{ "${{" }} secrets.SONARQUBE_USER_TOKEN }}
-  IMAGE: ${{ vars.registry_url }}/${{ vars.quay_org }}/${{ vars.app_name }}-develop/${{ vars.app_name }}:${{ github.sha }}
-  MANIFEST_REPO_URL: https://${{ vars.git_host_url }}/${{ vars.git_owner_name }}/${{ vars.app_name }}-manifest
-  ARGOCD_INSTANCE_URL: ${{ "${{" }} secrets.ARGOCD_INSTANCE_URL }} 
-  ARGOCD_USERNAME: ${{ "${{" }} secrets.ARGOCD_USERNAME }}
-  ARGOCD_PASSWORD: ${{ "${{" }} secrets.ARGOCD_PASSWORD }}
-  REPOSITORY_NAME: ${{ values.app_name }}
+#env:
+#  AWS_REGION: ${{ "${{" }} secrets.AWS_REGION }}
+#  SONAR_PROJECT_KEY: ${{ values.app_name }}
+#  SONARQUBE_URL: ${{ "${{" }} secrets.SONARQUBE_URL }}
+#  SONARQUBE_USER_TOKEN: ${{ "${{" }} secrets.SONARQUBE_USER_TOKEN }}
+#  IMAGE: ${{ vars.registry_url }}/${{ vars.quay_org }}/${{ vars.app_name }}-develop/${{ vars.app_name }}:${{ github.sha }}
+#  MANIFEST_REPO_URL: https://${{ vars.git_host_url }}/${{ vars.git_owner_name }}/${{ vars.app_name }}-manifest
+#  ARGOCD_INSTANCE_URL: ${{ "${{" }} secrets.ARGOCD_INSTANCE_URL }} 
+#  ARGOCD_USERNAME: ${{ "${{" }} secrets.ARGOCD_USERNAME }}
+#  ARGOCD_PASSWORD: ${{ "${{" }} secrets.ARGOCD_PASSWORD }}
+#  REPOSITORY_NAME: ${{ values.app_name }}
 
 jobs:
   sonar_scan:
