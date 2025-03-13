@@ -6,15 +6,19 @@ metadata:
   labels:
     app: ${{ values.app_name }}
   links:
-    - url: https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }} 
+    - url: https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}-app 
       title: App Repository
+      icon: github
+    - url: https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}-anifest
+      title: Manifest Repository
       icon: github
   annotations:
     backstage.io/kubernetes-label-selector: 'app=${{ values.app_name }}'
     backstage.io/kubernetes-namespace: ${{ values.app_name }}
     argocd/app-selector: app.kubernetes.io/instance=${{ values.app_name }}-init
-    backstage.io/techdocs-ref: url:https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}
-    github.com/project-slug: ${{ values.git_owner_name }}/${{ values.git_repo_name }}
+    backstage.io/techdocs-ref: url:https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}-app
+    github.com/project-slug: ${{ values.git_owner_name }}/${{ values.git_repo_name }}-app
+    sonarqube.org/project-key: ${{ values.app_name }}
 spec:
   type: website
   owner: ${{ values.owner }}
