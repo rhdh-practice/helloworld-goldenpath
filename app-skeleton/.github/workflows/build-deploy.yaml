@@ -80,7 +80,7 @@ jobs:
         run: |
           docker push ${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
   
-  git_clone_manifests:
+  update_manifests:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
     needs: [build_and_push]
@@ -101,31 +101,41 @@ jobs:
           path: ${{ values.git_repo_name }}-manifest
           token: ${{ "${{" }} steps.app-token.outputs.token }}  
   
-#  kustomize_edit:
-#    runs-on: ubuntu-latest
-#    if: github.ref == 'refs/heads/develop'
-#    needs: [git_clone_manifests]
-#    steps:
-#      - name: Download manifest repo
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: manifest-repo
-#          path: manifest-repo
-#      
-#      - name: Setup Kustomize
-#        uses: fluxcd/pkg//actions/kustomize@v0.25.0
-#      
-#      - name: Update Kustomize
-#        run: |
-#          cd manifest-repo/kustomize/app/overlays/dev
-#          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ env.IMAGE }}
-#      
-#      - name: Upload updated manifest repo
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: updated-manifest-repo
-#          path: manifest-repo/
-#  
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin
+
+      - name: Update Kustomize
+        run: |
+          cd manifests
+          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
+
+  kustomize_edit:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    needs: [git_clone_manifests]
+    steps:
+      - name: Download manifest repo
+        uses: actions/download-artifact@v3
+        with:
+          name: manifest-repo
+          path: manifest-repo
+      
+      - name: Setup Kustomize
+        uses: fluxcd/pkg//actions/kustomize@v0.25.0
+      
+      - name: Update Kustomize
+        run: |
+          cd manifest-repo/kustomize/app/overlays/dev
+          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ env.IMAGE }}
+      
+      - name: Upload updated manifest repo
+        uses: actions/upload-artifact@v3
+        with:
+          name: updated-manifest-repo
+          path: manifest-repo/
+  
 #  push_manifests:
 #    runs-on: ubuntu-latest
 #    if: github.ref == 'refs/heads/develop'

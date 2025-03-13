@@ -15,7 +15,7 @@ spec:
         app: ${{ values.app_name }}
     spec:
       containers:
-      - image: quay.io/skitamur/hello-world:latest 
+      - image: ___IMAGE_URL___@___IMAGE_DIGEST___
         name: ${{ values.app_name }}
         ports:
         - containerPort: 3000
