@@ -9,7 +9,7 @@ metadata:
     - url: https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}-app 
       title: App Repository
       icon: github
-    - url: https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}-anifest
+    - url: https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}-manifest
       title: Manifest Repository
       icon: github
   annotations:
