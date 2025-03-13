@@ -1,0 +1,169 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+env:
+  AWS_REGION: ${{ "${{" }} secrets.AWS_REGION }}
+  SONAR_PROJECT_KEY: ${{ values.app_name }}
+  SONARQUBE_URL: ${{ "${{" }} secrets.SONARQUBE_URL }}
+  SONARQUBE_USER_TOKEN: ${{ "${{" }} secrets.SONARQUBE_USER_TOKEN }}
+  IMAGE: ${{ vars.registry_url }}/${{ vars.quay_org }}/${{ vars.app_name }}-develop/${{ vars.app_name }}:${{ github.sha }}
+  MANIFEST_REPO_URL: https://${{ vars.git_host_url }}/${{ vars.git_owner_name }}/${{ vars.app_name }}-manifest
+  ARGOCD_INSTANCE_URL: ${{ "${{" }} secrets.ARGOCD_INSTANCE_URL }} 
+  ARGOCD_USERNAME: ${{ "${{" }} secrets.ARGOCD_USERNAME }}
+  ARGOCD_PASSWORD: ${{ "${{" }} secrets.ARGOCD_PASSWORD }}
+  REPOSITORY_NAME: ${{ values.app_name }}
+
+jobs:
+  sonar_scan:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ "${{" }} secrets.SONARQUBE_USER_TOKEN }}
+          SONAR_HOST_URL: ${{ "${{" }} secrets.SONARQUBE_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey="${{ values.app_name }}"
+  
+  build_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ソースコードをチェックアウト
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      # AWS 認証情報を設定
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ "${{" }} secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsPushECRRole
+          role-session-name: GitHubActionsSession
+          aws-region: ${{ "${{" }} secrets.AWS_REGION }}
+
+      # ECR へのログイン (出力で registry URL を取得)
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # リポジトリをチェックし、存在しなければ作成
+      - name: Create ECR repository if not exists
+        run: |
+          REPOSITORY_NAME="${{ values.app_name }}"
+          if ! aws ecr describe-repositories --repository-names "$REPOSITORY_NAME" > /dev/null 2>&1; then
+            aws ecr create-repository --repository-name "$REPOSITORY_NAME"
+          fi
+
+      # Docker イメージのビルド
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }} .
+
+      # ECR にプッシュ
+      - name: Push Docker image
+        run: |
+          docker push ${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
+  
+  git_clone_manifests:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    needs: [build_and_push]
+    steps:
+      - name: Create token for manifest repository
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ "${{" }} secrets.GITHUBAPP_ID }}
+          private-key: ${{ "${{" }} secrets.GITHUBAPP_PRIVATE_KEY }}
+          owner: ${{ values.git_owner_name }}
+          repositories: ${{ values.git_repo_name }}-manifest
+
+      - name: Checkout manifest repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ values.git_owner_name }}/${{ values.git_repo_name }}-manifest
+          path: ${{ values.git_repo_name }}-manifest
+          token: ${{ "${{" }} steps.app-token.outputs.token }}  
+  
+#  kustomize_edit:
+#    runs-on: ubuntu-latest
+#    if: github.ref == 'refs/heads/develop'
+#    needs: [git_clone_manifests]
+#    steps:
+#      - name: Download manifest repo
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: manifest-repo
+#          path: manifest-repo
+#      
+#      - name: Setup Kustomize
+#        uses: fluxcd/pkg//actions/kustomize@v0.25.0
+#      
+#      - name: Update Kustomize
+#        run: |
+#          cd manifest-repo/kustomize/app/overlays/dev
+#          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ env.IMAGE }}
+#      
+#      - name: Upload updated manifest repo
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: updated-manifest-repo
+#          path: manifest-repo/
+#  
+#  push_manifests:
+#    runs-on: ubuntu-latest
+#    if: github.ref == 'refs/heads/develop'
+#    needs: [kustomize_edit]
+#    steps:
+#      - name: Download updated manifest repo
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: updated-manifest-repo
+#          path: manifest-repo
+#      
+#      - name: Setup Git
+#        run: |
+#          echo "${{ secrets.GIT_CREDENTIALS }}" > .git-credentials
+#          git config --global credential.helper store
+#          git config --global user.name "${{ github.actor }}"
+#          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+#          git config --global --add safe.directory $(pwd)/manifest-repo
+#      
+#      - name: Commit and push changes
+#        run: |
+#          cd manifest-repo
+#          git checkout develop
+#          git diff
+#          git add -A ./kustomize/app/overlays/
+#          git commit -m "Change container image in manifests by ${{ github.actor }}"
+#          git push origin develop
+#  
+#  deploy_application:
+#    runs-on: ubuntu-latest
+#    if: github.ref == 'refs/heads/develop'
+#    needs: [push_manifests]
+#    steps:
+#      - name: Install ArgoCD CLI
+#        run: |
+#          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+#          chmod +x argocd
+#          sudo mv argocd /usr/local/bin/argocd
+#      
+#      - name: Sync and wait for deployment
+#        run: |
+#          argocd login "${ARGOCD_SERVER}" --username "${ARGOCD_USERNAME}" --password "${ARGOCD_PASSWORD}" --insecure
+#          argocd app sync ${{ vars.app_name }}-dev --revision develop
+#          argocd app wait ${{ vars.app_name }}-dev --health
+#

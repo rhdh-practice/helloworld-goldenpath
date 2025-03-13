@@ -1,0 +1,141 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: helloworld-goldenpath
+  title: Hello world app With CICD
+  description: シンプルなHelloWorldアプリをGitHub Actionsを使ってビルド・デプロイするためのテンプレート 
+  tags:
+    - recommended
+spec:
+  owner: user:default/skitamura7446
+  type: website
+
+  parameters:
+    - title: 作成するComponentの情報
+      required:
+        - app_name
+        - owner
+      properties:
+        app_name:
+          title: アプリケーション名
+          description: 作成するアプリ名を指定してください。
+          type: string
+          default: "helloworld"
+        owner:
+          title: オーナー
+          type: string
+          description: 作成するComponentのオーナーを選択してください。
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind:
+                - Group
+                - User
+
+    - title: GitHubリポジトリの情報
+      required:
+        - git_repo_name
+        - git_host_url
+        - git_owner_name
+      properties:
+        git_repo_name:
+          title: GitHubリポジトリ名
+          description: 生成するGitHubリポジトリ名を入力してください。
+          type: string
+          default: helloworld
+        git_host_url:
+          title: GitHub URL
+          description: GitHubリポジトリのURLを入力してください。
+          type: string
+          default: github.com
+        git_owner_name:
+          title: GitHub Organization名
+          description: GitHubリポジトリを生成するGitHub Organization名を入力してください。
+          type: string
+          default: rhdh-practice
+  steps:
+    - id: fetch-app
+      name: Fetch App skeleton 
+      action: fetch:template
+      input:
+        url: ./app-skeleton
+        values:
+          app_name: ${{ parameters.app_name }}
+          owner: ${{ parameters.owner }}
+          git_repo_name: ${{ parameters.git_repo_name }}
+          git_host_url: ${{ parameters.git_host_url }}
+          git_owner_name: ${{ parameters.git_owner_name }}
+        targetPath: ./app-tenant
+
+    - id: fetch-manifest
+      name: Fetch Manifest skeleton
+      action: fetch:template
+      input:
+        url: ./manifest-skeleton
+        values:
+          app_name: ${{ parameters.app_name }}
+          owner: ${{ parameters.owner }}
+          git_repo_name: ${{ parameters.git_repo_name }}
+          git_host_url: ${{ parameters.git_host_url }}
+          git_owner_name: ${{ parameters.git_owner_name }}
+        targetPath: ./manifest-tenant
+
+    - id: publish-app
+      name: Push App Repo to GitHub 
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.git_host_url }}?owner=${{ parameters.git_owner_name }}&repo=${{ parameters.git_repo_name }}-app
+        repoVisibility: public
+        sourcePath: ./app-tenant
+        defaultBranch: develop
+        protectDefaultBranch: false
+
+    - id: publish-manifest
+      name: Push Manifest Repo to GitHub
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.git_host_url }}?owner=${{ parameters.git_owner_name }}&repo=${{ parameters.git_repo_name }}-manifest
+        repoVisibility: public
+        sourcePath: ./manifest-tenant
+        defaultBranch: develop
+        protectDefaultBranch: false
+
+    - id: argocd
+      name: Deploy with ArgoCD
+      action: argocd:create-resources
+      input:
+        appName: ${{ parameters.app_name }}-init
+        argoInstance: main
+        namespace: openshift-gitops
+        repoUrl: https://${{ parameters.git_host_url }}/${{ parameters.git_owner_name }}/${{ parameters.git_repo_name }}-manifest.git
+        path: 'argocd/'
+
+    - id: register
+      name: Register Catalog into Developer Hub
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps['publish-app'].output.repoContentsUrl }}
+        catalogInfoPath: "/catalog-info.yaml"
+
+    - id: create-sonarqube-project
+      name: Create Sonarqube Project
+      action: sonarqube:create-project
+      input:
+        baseUrl: http://sonarqube-sonarqube.sonarqube.svc:9000
+        name: ${{ parameters.app_name }}
+        key: ${{ parameters.app_name }}
+        branch: main
+        username: admin
+        password: adminadmin
+
+  output:
+    links:
+      - title: Componentを開く
+        icon: catalog
+        entityRef: ${{ steps['register'].output.entityRef }}
+      - title: Application Gitリポジトリを開く
+        url: ${{ steps['publis-app'].output.remoteUrl }}
+        icon: github
+      - title: Manifest Gitリポジトリを開く
+        url: ${{ steps['publish-manifest'].output.remoteUrl }}
+        icon: github
