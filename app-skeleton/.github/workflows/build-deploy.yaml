@@ -80,6 +80,9 @@ jobs:
         run: |
           docker push ${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
   
+    outputs:
+      ecr_repository: ${{ "${{" }} steps.ecr-login.outputs.registry }}
+
   update_manifests:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop'
@@ -109,7 +112,7 @@ jobs:
       - name: Update Kustomize
         run: |
           cd ${{ values.git_repo_name }}-manifest/kustomize/overlays/dev
-          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
+          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ "${{" }} needs.build_and_push.outputs.ecr_repository }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
 
       - name: Commit and push changes
         run: |
