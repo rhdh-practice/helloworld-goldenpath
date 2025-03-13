@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://${{ values.git_host_url }}/${{ values.git_owner_name }}/${{ values.git_repo_name }}-manifest.git
     targetRevision: develop
-    path: ./manifests
+    path: ./kustomize/overlays/dev
   destination:
     server: https://kubernetes.default.svc
     namespace: ${{ values.app_name }}

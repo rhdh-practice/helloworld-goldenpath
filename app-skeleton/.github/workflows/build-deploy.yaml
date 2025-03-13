@@ -108,7 +108,7 @@ jobs:
 
       - name: Update Kustomize
         run: |
-          cd kustomize/overlays/dev
+          cd ${{ values.git_repo_name }}-manifest/kustomize/overlays/dev
           kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
 
       - name: Commit and push changes
