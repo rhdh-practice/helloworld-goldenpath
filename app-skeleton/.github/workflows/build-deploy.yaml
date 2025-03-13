@@ -79,9 +79,6 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ${{ "${{" }} steps.ecr-login.outputs.registry }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
-  
-    outputs:
-      ecr_repository: ${{ "${{" }} steps.ecr-login.outputs.registry }}
 
   update_manifests:
     runs-on: ubuntu-latest
@@ -112,11 +109,11 @@ jobs:
       - name: Update Kustomize
         run: |
           cd ${{ values.git_repo_name }}-manifest/kustomize/overlays/dev
-          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ "${{" }} needs.build_and_push.outputs.ecr_repository }}/${{ values.app_name }}:${{ "${{" }} github.sha }}
+          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ "${{" }} secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ "${{" }} secrets.AWS_REGION }}.amazonaws.com/${{ values.app_name }}:${{ "${{" }} github.sha }}
 
       - name: Commit and push changes
         run: |
-          #cd ${{ values.git_repo_name }}-manifest
+          cd ${{ values.git_repo_name }}-manifest
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
