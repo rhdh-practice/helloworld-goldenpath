@@ -26,3 +26,8 @@ spec:
         duration: 5s
         factor: 2
         maxDuration: 5m
+  ignoreDifferences:
+  - kind: ServiceAccount
+    jsonPointers:
+    - /imagePullSecrets
+    - /secrets
