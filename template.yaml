@@ -134,7 +134,7 @@ spec:
         icon: catalog
         entityRef: ${{ steps['register'].output.entityRef }}
       - title: Application Gitリポジトリを開く
-        url: ${{ steps['publis-app'].output.remoteUrl }}
+        url: ${{ steps['publish-app'].output.remoteUrl }}
         icon: github
       - title: Manifest Gitリポジトリを開く
         url: ${{ steps['publish-manifest'].output.remoteUrl }}
