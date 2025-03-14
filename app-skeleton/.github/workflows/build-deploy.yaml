@@ -136,7 +136,7 @@ jobs:
       
       - name: Sync and wait for deployment
         run: |
-          argocd login "${{ "${{" }} vars.ARGOCD_INSTANCE_URL }}" --username "${{ "${{" }} secrets.ARGOCD_USERNAME }}" --password "${{ "${{" }} secrets.ARGOCD_PASSWORD }}" --grpc-web
+          argocd login "${{ "${{" }} vars.ARGOCD_INSTANCE_URL }}" --username "${{ "${{" }} secrets.ARGOCD_USERNAME }}" --password "${{ "${{" }} secrets.ARGOCD_PASSWORD }}" --skip-test-tls --grpc-web
           argocd app sync ${{ values.app_name }} --revision develop
           argocd app wait ${{ values.app_name }} --health
 
