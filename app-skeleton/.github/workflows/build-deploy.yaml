@@ -122,74 +122,21 @@ jobs:
           git diff-index --quiet HEAD || git commit -m "Update kustomize manifests for commit ${{ github.sha }}"
 
           git push origin HEAD:develop
-
-#  kustomize_edit:
-#    runs-on: ubuntu-latest
-#    if: github.ref == 'refs/heads/develop'
-#    needs: [git_clone_manifests]
-#    steps:
-#      - name: Download manifest repo
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: manifest-repo
-#          path: manifest-repo
-#      
-#      - name: Setup Kustomize
-#        uses: fluxcd/pkg//actions/kustomize@v0.25.0
-#      
-#      - name: Update Kustomize
-#        run: |
-#          cd manifest-repo/kustomize/app/overlays/dev
-#          kustomize edit set image ___IMAGE_URL___@___IMAGE_DIGEST___=${{ env.IMAGE }}
-#      
-#      - name: Upload updated manifest repo
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: updated-manifest-repo
-#          path: manifest-repo/
   
-#  push_manifests:
-#    runs-on: ubuntu-latest
-#    if: github.ref == 'refs/heads/develop'
-#    needs: [kustomize_edit]
-#    steps:
-#      - name: Download updated manifest repo
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: updated-manifest-repo
-#          path: manifest-repo
-#      
-#      - name: Setup Git
-#        run: |
-#          echo "${{ secrets.GIT_CREDENTIALS }}" > .git-credentials
-#          git config --global credential.helper store
-#          git config --global user.name "${{ github.actor }}"
-#          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-#          git config --global --add safe.directory $(pwd)/manifest-repo
-#      
-#      - name: Commit and push changes
-#        run: |
-#          cd manifest-repo
-#          git checkout develop
-#          git diff
-#          git add -A ./kustomize/app/overlays/
-#          git commit -m "Change container image in manifests by ${{ github.actor }}"
-#          git push origin develop
-#  
-#  deploy_application:
-#    runs-on: ubuntu-latest
-#    if: github.ref == 'refs/heads/develop'
-#    needs: [push_manifests]
-#    steps:
-#      - name: Install ArgoCD CLI
-#        run: |
-#          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-#          chmod +x argocd
-#          sudo mv argocd /usr/local/bin/argocd
-#      
-#      - name: Sync and wait for deployment
-#        run: |
-#          argocd login "${ARGOCD_SERVER}" --username "${ARGOCD_USERNAME}" --password "${ARGOCD_PASSWORD}" --insecure
-#          argocd app sync ${{ vars.app_name }}-dev --revision develop
-#          argocd app wait ${{ vars.app_name }}-dev --health
-#
+  deploy_application:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    needs: [update_manifests]
+    steps:
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/argocd
+      
+      - name: Sync and wait for deployment
+        run: |
+          argocd login "${{ "${{" }} vars.ARGOCD_INSTANCE_URL }}" --username "${{ "${{" }} secrets.ARGOCD_USERNAME }}" --password "${{ "${{" }} secrets.ARGOCD_PASSWORD }}" --insecure
+          argocd app sync ${{ values.app_name }} --revision develop
+          argocd app wait ${{ values.app_name }} --health
+
