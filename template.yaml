@@ -2,8 +2,8 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: helloworld-goldenpath
-  title: Hello world app With CICD
-  description: シンプルなHelloWorldアプリをGitHub Actionsを使ってビルド・デプロイするためのテンプレート 
+  title: Hello world app with CICD
+  description: HelloWorldアプリをGitHub Actionsを使ってビルド・デプロイするテンプレート 
   tags:
     - recommended
 spec:
