@@ -20,7 +20,7 @@ spec:
           title: アプリケーション名
           description: 作成するアプリ名を指定してください。
           type: string
-          default: "helloworld"
+          default: "helloworld-gp"
         owner:
           title: オーナー
           type: string
@@ -42,7 +42,7 @@ spec:
           title: GitHubリポジトリ名
           description: 生成するGitHubリポジトリ名を入力してください。
           type: string
-          default: helloworld
+          default: helloworld-gp
         git_host_url:
           title: GitHub URL
           description: GitHubリポジトリのURLを入力してください。
