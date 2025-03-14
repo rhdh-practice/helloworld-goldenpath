@@ -68,32 +68,6 @@ jobs:
           REPOSITORY_NAME="${{ values.app_name }}"
           if ! aws ecr describe-repositories --repository-names "$REPOSITORY_NAME" > /dev/null 2>&1; then
             aws ecr create-repository --repository-name "$REPOSITORY_NAME"
-#            cat <<EOF > /tmp/repo_policy.json
-#            {    
-#              "Version": "2012-10-17",    
-#              "Statement": [        
-#                {            
-#                  "Sid": "AllowPushPull",            
-#                  "Effect": "Allow",            
-#                  "Principal": {                
-#                    "AWS": [                    
-#                      "arn:aws:iam::${{ "${{" }} secrets.AWS_ACCOUNT_ID }}:role/ECRLogin1"                
-#                    ]            
-#                  },            
-#                  "Action": [                
-#                    "ecr:BatchGetImage",                
-#                    "ecr:BatchCheckLayerAvailability",                
-#                    "ecr:CompleteLayerUpload",                
-#                    "ecr:GetDownloadUrlForLayer",                
-#                    "ecr:InitiateLayerUpload",                
-#                    "ecr:PutImage",                
-#                    "ecr:UploadLayerPart"            
-#                  ]        
-#                }    
-#              ]
-#            }
-#            EOF
-#            aws ecr set-repository-policy --repository-name $REPOSITORY_NAME --policy-text file:///tmp/repo_policy.json
           fi
 
       # Docker イメージのビルド
