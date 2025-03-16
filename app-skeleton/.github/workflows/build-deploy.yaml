@@ -49,6 +49,8 @@ jobs:
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: 'true'
 
       # リポジトリをチェックし、存在しなければ作成
       - name: Create ECR repository if not exists
